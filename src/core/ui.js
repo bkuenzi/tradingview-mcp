@@ -10,15 +10,15 @@ export async function click({ by, value }) {
       var by = ${JSON.stringify(by)};
       var value = ${escaped};
       var el = null;
-      if (by === 'aria-label') el = document.querySelector('[aria-label="' + value.replace(/"/g, '\\\\"') + '"]');
-      else if (by === 'data-name') el = document.querySelector('[data-name="' + value.replace(/"/g, '\\\\"') + '"]');
+      if (by === 'aria-label') el = Array.from(document.querySelectorAll('[aria-label]')).find(function(e) { return e.getAttribute('aria-label') === value; }) || null;
+      else if (by === 'data-name') el = Array.from(document.querySelectorAll('[data-name]')).find(function(e) { return e.getAttribute('data-name') === value; }) || null;
       else if (by === 'text') {
         var candidates = document.querySelectorAll('button, a, [role="button"], [role="menuitem"], [role="tab"]');
         for (var i = 0; i < candidates.length; i++) {
           var text = candidates[i].textContent.trim();
           if (text === value || text.toLowerCase() === value.toLowerCase()) { el = candidates[i]; break; }
         }
-      } else if (by === 'class-contains') el = document.querySelector('[class*="' + value.replace(/"/g, '\\\\"') + '"]');
+      } else if (by === 'class-contains') el = Array.from(document.querySelectorAll('*')).find(function(e) { return (e.className || '').includes(value); }) || null;
       if (!el) return { found: false };
       el.click();
       return { found: true, tag: el.tagName.toLowerCase(), text: (el.textContent || '').trim().substring(0, 80), aria_label: el.getAttribute('aria-label') || null, data_name: el.getAttribute('data-name') || null };
@@ -197,14 +197,14 @@ export async function hover({ by, value }) {
       var value = ${JSON.stringify(value)};
       var el = null;
       if (by === 'aria-label') {
-        el = document.querySelector('[aria-label="' + value.replace(/"/g, '\\\\"') + '"]');
-        if (!el) el = document.querySelector('[aria-label*="' + value.replace(/"/g, '\\\\"') + '"]');
+        el = Array.from(document.querySelectorAll('[aria-label]')).find(function(e) { return e.getAttribute('aria-label') === value; }) || null;
+        if (!el) el = Array.from(document.querySelectorAll('[aria-label]')).find(function(e) { return (e.getAttribute('aria-label') || '').includes(value); }) || null;
       }
-      else if (by === 'data-name') el = document.querySelector('[data-name="' + value.replace(/"/g, '\\\\"') + '"]');
+      else if (by === 'data-name') el = Array.from(document.querySelectorAll('[data-name]')).find(function(e) { return e.getAttribute('data-name') === value; }) || null;
       else if (by === 'text') {
         var candidates = document.querySelectorAll('button, a, [role="button"], [role="menuitem"], [role="tab"], span, div');
         for (var i = 0; i < candidates.length; i++) { var text = candidates[i].textContent.trim(); if (text === value || text.toLowerCase() === value.toLowerCase()) { el = candidates[i]; break; } }
-      } else if (by === 'class-contains') el = document.querySelector('[class*="' + value.replace(/"/g, '\\\\"') + '"]');
+      } else if (by === 'class-contains') el = Array.from(document.querySelectorAll('*')).find(function(e) { return (e.className || '').includes(value); }) || null;
       if (!el) return null;
       var rect = el.getBoundingClientRect();
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, tag: el.tagName.toLowerCase() };
@@ -263,7 +263,7 @@ export async function findElement({ query, strategy }) {
           results.push({ tag: els[i].tagName.toLowerCase(), text: (els[i].textContent || '').trim().substring(0, 80), aria_label: els[i].getAttribute('aria-label') || null, data_name: els[i].getAttribute('data-name') || null, x: rect.x, y: rect.y, width: rect.width, height: rect.height, visible: els[i].offsetParent !== null });
         }
       } else if (strategy === 'aria-label') {
-        var els = document.querySelectorAll('[aria-label*="' + query.replace(/"/g, '\\\\"') + '"]');
+        var els = Array.from(document.querySelectorAll('[aria-label]')).filter(function(e) { return (e.getAttribute('aria-label') || '').includes(query); });
         for (var i = 0; i < Math.min(els.length, 20); i++) {
           var rect = els[i].getBoundingClientRect();
           results.push({ tag: els[i].tagName.toLowerCase(), text: (els[i].textContent || '').trim().substring(0, 80), aria_label: els[i].getAttribute('aria-label') || null, data_name: els[i].getAttribute('data-name') || null, x: rect.x, y: rect.y, width: rect.width, height: rect.height, visible: els[i].offsetParent !== null });
@@ -285,9 +285,4 @@ export async function findElement({ query, strategy }) {
     })()
   `);
   return { success: true, query, strategy: strat, count: results?.length || 0, elements: results || [] };
-}
-
-export async function uiEvaluate({ expression }) {
-  const result = await evaluate(expression);
-  return { success: true, result };
 }

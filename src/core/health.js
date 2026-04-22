@@ -159,8 +159,16 @@ export async function uiState() {
   return { success: true, ...state };
 }
 
+function validateCdpPort(port) {
+  const n = Number(port);
+  if (!Number.isInteger(n) || n < 1024 || n > 65535) {
+    throw new Error(`CDP port must be an integer between 1024–65535, got: ${port}`);
+  }
+  return n;
+}
+
 export async function launch({ port, kill_existing } = {}) {
-  const cdpPort = port || 9222;
+  const cdpPort = validateCdpPort(port ?? 9222);
   const killFirst = kill_existing !== false;
   const platform = process.platform;
 
@@ -219,7 +227,7 @@ export async function launch({ port, kill_existing } = {}) {
     } catch { /* may not be running */ }
   }
 
-  const child = spawn(tvPath, [`--remote-debugging-port=${cdpPort}`], { detached: true, stdio: 'ignore' });
+  const child = spawn(tvPath, [`--remote-debugging-port=${cdpPort}`, '--remote-debugging-address=127.0.0.1'], { detached: true, stdio: 'ignore' });
   child.unref();
 
   for (let i = 0; i < 15; i++) {
